@@ -1,0 +1,156 @@
+﻿@model IEnumerable<MonApplicationMVC.Models.Lot>
+
+<h2>Lots</h2>
+
+<!-- Bouton pour afficher la popup d'ajout -->
+<button type="button" id="showAddPopup" class="btn btn-primary">Ajouter un Lot</button>
+
+<hr />
+
+<!-- Formulaire de recherche (toujours visible) -->
+<div id="searchForm">
+    <h3>Rechercher des Lots</h3>
+    <form id="dynamicSearchForm">
+        <div class="form-group">
+            <label for="searchNumLot">Numéro du Lot</label>
+            <input type="text" class="form-control" id="searchNumLot" name="searchNumLot" />
+        </div>
+
+        <div class="form-group">
+            <label for="searchDateProd">Date de Production</label>
+            <input type="date" class="form-control" id="searchDateProd" name="searchDateProd" />
+        </div>
+    </form>
+</div>
+
+<hr />
+
+<!-- Popup pour le formulaire d'ajout -->
+<dialog id="addPopup" class="popup">
+    <h3>Formulaire d'ajout</h3>
+    <form asp-action="Create" method="post">
+        <div class="form-group">
+            <label for="NumLot">Numéro du Lot</label>
+            <input type="text" class="form-control" id="NumLot" name="NumLot" required />
+        </div>
+
+        <div class="form-group">
+            <label for="LotDateProd">Date de Production</label>
+            <input type="date" class="form-control" id="LotDateProd" name="LotDateProd" required />
+        </div>
+
+        <div class="form-group">
+            <label for="LotNumEntree">Numéro d'Entrée</label>
+            <input type="text" class="form-control" id="LotNumEntree" name="LotNumEntree" required />
+        </div>
+
+        <div class="form-group">
+            <label for="LotClient">Code Client</label>
+            <input type="text" class="form-control" id="LotClient" name="LotClient" required />
+        </div>
+
+        <div class="form-group">
+            <label for="LotFournisseur">Code Fournisseur</label>
+            <input type="text" class="form-control" id="LotFournisseur" name="LotFournisseur" required />
+        </div>
+
+        <div class="form-group">
+            <label for="LotOperateurEnr">Opérateur</label>
+            <input type="text" class="form-control" id="LotOperateurEnr" name="LotOperateurEnr" required />
+        </div>
+
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary btn-block">Soumettre</button>
+            <button type="button" class="btn btn-secondary btn-block" id="closeAddPopup">Fermer</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- Liste des lots -->
+<h3>Liste des Lots</h3>
+<div id="lotList">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Numéro du Lot</th>
+                <th>Date de Production</th>
+                <th>Numéro d'Entrée</th>
+                <th>Client</th>
+                <th>Fournisseur</th>
+                <th>Opérateur</th>
+            </tr>
+        </thead>
+        <tbody id="lotTableBody">
+            @foreach (var lot in Model)
+            {
+                <tr>
+                    <td>@lot.NumLot</td>
+                    <td>@lot.LotDateProd.ToString("dd/MM/yyyy")</td>
+                    <td>@lot.LotNumEntree</td>
+                    <td>@lot.LotClient</td>
+                    <td>@lot.LotFournisseur</td>
+                    <td>@lot.LotOperateurEnr</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // Ouverture et fermeture de la popup d'ajout
+    const addPopup = document.getElementById("addPopup");
+
+    document.getElementById("showAddPopup").onclick = () => addPopup.showModal();
+    document.getElementById("closeAddPopup").onclick = () => addPopup.close();
+
+    // Recherche dynamique
+    document.getElementById("searchNumLot").addEventListener("input", performSearch);
+    document.getElementById("searchDateProd").addEventListener("input", performSearch);
+
+    function performSearch() {
+        const searchNumLot = document.getElementById("searchNumLot").value;
+        const searchDateProd = document.getElementById("searchDateProd").value;
+
+        fetch(`/Lot/SearchLots?searchNumLot=${searchNumLot}&searchDateProd=${searchDateProd}`)
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.getElementById("lotTableBody");
+                tableBody.innerHTML = ""; // Efface les anciennes lignes
+
+                if (data.length > 0) {
+                    data.forEach(lot => {
+                        const row = `
+                            <tr>
+                                <td>${lot.numLot}</td>
+                                <td>${lot.lotDateProd}</td>
+                                <td>${lot.lotNumEntree}</td>
+                                <td>${lot.lotClient}</td>
+                                <td>${lot.lotFournisseur}</td>
+                                <td>${lot.lotOperateurEnr}</td>
+                            </tr>`;
+                        tableBody.innerHTML += row;
+                    });
+                } else {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center">Aucun résultat trouvé</td>
+                        </tr>`;
+                }
+            })
+            .catch(error => console.error("Erreur lors de la recherche :", error));
+    }
+</script>
+
+<style>
+    dialog.popup {
+        width: 50%;
+        border: none;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    dialog::backdrop {
+        background: rgba(0, 0, 0, 0.4);
+    }
+</style>

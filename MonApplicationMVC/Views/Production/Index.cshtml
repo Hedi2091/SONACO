@@ -1,0 +1,208 @@
+﻿@model IEnumerable<MonApplicationMVC.Models.ProdEnroul_Enete>
+
+<h2>Productions Enroulées</h2>
+
+<!-- Bouton pour afficher la popup d'ajout -->
+<button type="button" id="showAddPopup" class="btn btn-primary">Ajouter une Production</button>
+
+<hr />
+
+<!-- Formulaire de recherche (toujours visible) -->
+<div id="searchForm">
+    <h3>Rechercher des Productions</h3>
+    <form id="dynamicSearchForm">
+        <div class="form-group">
+            <label for="searchNumLot">Numéro du Lot</label>
+            <input type="text" class="form-control" id="searchNumLot" name="searchNumLot" />
+        </div>
+
+        <div class="form-group">
+            <label for="searchDateDebut">Date de Début</label>
+            <input type="date" class="form-control" id="searchDateDebut" name="searchDateDebut" />
+        </div>
+    </form>
+</div>
+
+<hr />
+
+<!-- Popup pour le formulaire d'ajout -->
+<dialog id="addPopup" class="popup">
+    <h3>Formulaire d'ajout</h3>
+    <form asp-action="Create" method="post">
+        <fieldset>
+            <legend>En-tête de Production</legend>
+            <div class="form-group">
+                <label for="NumLot">Numéro du Lot</label>
+                <input type="text" class="form-control" id="NumLot" name="NumLot" required />
+            </div>
+
+            <div class="form-group">
+                <label for="DateDebut">Date de Début</label>
+                <input type="date" class="form-control" id="DateDebut" name="DateDebut" required />
+            </div>
+
+            <div class="form-group">
+                <label for="HeureDebut">Heure de Début</label>
+                <input type="time" class="form-control" id="HeureDeb" name="HeureDebut" required />
+            </div>
+
+            <div class="form-group">
+                <label for="LongueurTotale">Longueur Totale</label>
+                <input type="number" class="form-control" id="LongeurTotale" name="LongueurTotale" required />
+            </div>
+
+            <div class="form-group">
+                <label for="Operateur">Opérateur</label>
+                <input type="text" class="form-control" id="Operateur" name="Operateur" required />
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Détails des Rouleaux</legend>
+            <div id="rouleauxContainer">
+                <div class="rouleau-entry">
+                    <div class="form-group">
+                        <label for="NumEnsouple">Numéro d'Ensouple</label>
+                        <input type="number" class="form-control" id="NumEnsouple" name="Rouleaux[0].NumEnsouple" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="NumRouleau">Numéro du Rouleau</label>
+                        <input type="number" class="form-control" id="NumRouleau" name="Rouleaux[0].NumRouleau" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Poids">Poids</label>
+                        <input type="number" step="0.01" class="form-control" id="Poids" name="Rouleaux[0].Poids" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Metrage">Métrage</label>
+                        <input type="number" class="form-control" id="Metrage" name="Rouleaux[0].Metrage" required />
+                    </div>
+                </div>
+            </div>
+            <button type="button" id="addRouleau" class="btn btn-secondary">Ajouter un Rouleau</button>
+        </fieldset>
+
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary btn-block">Soumettre</button>
+            <button type="button" class="btn btn-secondary btn-block" id="closeAddPopup">Fermer</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- Liste des productions -->
+<h3>Liste des Productions</h3>
+<div id="productionList">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Numéro du Lot</th>
+                <th>Date de Début</th>
+                <th>Heure de Début</th>
+                <th>Longueur Totale</th>
+                <th>Opérateur</th>
+            </tr>
+        </thead>
+        <tbody id="productionTableBody">
+            @foreach (var production in Model)
+            {
+                <tr>
+                    <td>@production.NumLot</td>
+                    <td>@production.DateDebut.ToString("dd/MM/yyyy")</td>
+                    <td>@production.HeureDeb</td>
+                    <td>@production.LongeurTotale</td>
+                    <td>@production.Operateur</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // Ajout dynamique des rouleaux
+    document.getElementById("addRouleau").addEventListener("click", () => {
+        const container = document.getElementById("rouleauxContainer");
+        const index = container.children.length;
+
+        const rouleauHTML = `
+                <div class="rouleau-entry">
+                    <div class="form-group">
+                        <label for="NumEnsouple">Numéro d'Ensouple</label>
+                        <input type="number" class="form-control" id="NumEnsouple" name="Rouleaux[${index}].NumEnsouple" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="NumRouleau">Numéro du Rouleau</label>
+                        <input type="number" class="form-control" id="NumRouleau" name="Rouleaux[${index}].NumRouleau" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Poids">Poids</label>
+                        <input type="number" step="0.01" class="form-control" id="Poids" name="Rouleaux[${index}].Poids" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Metrage">Métrage</label>
+                        <input type="number" class="form-control" id="Metrage" name="Rouleaux[${index}].Metrage" required />
+                    </div>
+                </div>
+            `;
+
+        container.insertAdjacentHTML("beforeend", rouleauHTML);
+    });
+
+    // Gestion de la popup
+    const addPopup = document.getElementById("addPopup");
+    document.getElementById("showAddPopup").onclick = () => addPopup.showModal();
+    document.getElementById("closeAddPopup").onclick = () => addPopup.close();
+
+    // Recherche dynamique
+    document.getElementById("searchNumLot").addEventListener("input", performSearch);
+    document.getElementById("searchDateDebut").addEventListener("input", performSearch);
+
+    function performSearch() {
+        const searchNumLot = document.getElementById("searchNumLot").value;
+        const searchDateDebut = document.getElementById("searchDateDebut").value;
+
+        fetch(`/Production/Search?searchNumLot=${searchNumLot}&searchDateDebut=${searchDateDebut}`)
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.getElementById("productionTableBody");
+                tableBody.innerHTML = ""; // Efface les anciennes lignes
+
+                if (data.length > 0) {
+                    data.forEach(production => {
+                        const row = `
+                            <tr>
+                                <td>${production.NumLot}</td>
+                                <td>${production.DateDebut}</td>
+                                <td>${production.HeureDebut}</td>
+                                <td>${production.LongueurTotale}</td>
+                                <td>${production.Operateur}</td>
+                            </tr>`;
+                        tableBody.innerHTML += row;
+                    });
+                } else {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="text-center">Aucun résultat trouvé</td>
+                        </tr>`;
+                }
+            })
+            .catch(error => console.error("Erreur lors de la recherche :", error));
+    }
+</script>
+
+<style>
+    dialog.popup {
+        width: 50%;
+        border: none;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    dialog::backdrop {
+        background: rgba(0, 0, 0, 0.
