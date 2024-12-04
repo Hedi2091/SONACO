@@ -12,6 +12,16 @@ html {
   box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
+.bg-success {
+    background-color: #28a745; /* Vert Bootstrap */
+    color: white; /* Couleur du texte */
+}
+
+.text-white {
+    color: white !important; /* Garde le texte en blanc */
+}
+
+
 html {
   position: relative;
   min-height: 100%;

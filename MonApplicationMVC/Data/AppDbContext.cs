@@ -13,6 +13,10 @@ namespace MonApplicationMVC.Data
         public DbSet<Entree> Entree { get; set; }
         public DbSet<Lot> Lots { get; set; }
 
+        public DbSet<ProdEnroul_Enete> ProdEnroul_Enete { get; set; }
+
+        public DbSet<ProdEnroul_Rouleau> ProdEnroul_Rouleau { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<User_log>()

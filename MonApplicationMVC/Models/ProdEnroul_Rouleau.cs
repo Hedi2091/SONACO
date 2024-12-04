@@ -6,7 +6,7 @@ namespace MonApplicationMVC.Models
     public class ProdEnroul_Rouleau
     {
         [Key]
-        public string NumLot { get; set; } = string.Empty; // Numéro de lot
+        public int Id { get; set; }
 
         public int NumEnsouple { get; set; } // Numéro d'ensouple
 
@@ -16,6 +16,11 @@ namespace MonApplicationMVC.Models
 
         public int Metrage { get; set; } // Métrage inscrit
 
-        public ProdEnroul_Enete? Enete { get; set; } // La propriété peut être null
+        // Clé étrangère vers ProdEnroul_Enete
+        [ForeignKey("ProdEnroul_Enete")]
+        public string NumLot { get; set; }
+
+        public ProdEnroul_Enete ProdEnroul_Enete { get; set; } // Navigation vers l'entité parent
     }
+
 }

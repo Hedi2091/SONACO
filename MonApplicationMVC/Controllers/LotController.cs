@@ -83,6 +83,79 @@ namespace MonApplicationMVC.Controllers
             var lots = _context.Lots.ToList();
             return View("Index", lots);
         }
-    
+
+        [HttpDelete]
+        [Route("Lots/Delete")]
+        public IActionResult Delete(string NumLot)
+        {
+            if (string.IsNullOrEmpty(NumLot))
+            {
+                return BadRequest(new { success = false, message = "Identifiant non spécifié." });
+            }
+
+            var lot = _context.Lots.FirstOrDefault(l => l.NumLot == NumLot);
+            if (lot == null)
+            {
+                return NotFound(new { success = false, message = "Lot non trouvé." });
+            }
+
+            _context.Lots.Remove(lot);
+            _context.SaveChanges();
+
+            return Ok(new { success = true, message = "Lot supprimé avec succès." });
+        }
+
+        [HttpGet]
+        [Route("Lots/Edit")]
+        public IActionResult Edit(string NumLot)
+        {
+            if (string.IsNullOrEmpty(NumLot))
+            {
+                return BadRequest(new { success = false, message = "Numéro de lot non spécifié." });
+            }
+
+            var lot = _context.Lots.FirstOrDefault(l => l.NumLot == NumLot);
+            if (lot == null)
+            {
+                return NotFound(new { success = false, message = "Lot non trouvé." });
+            }
+
+            return Json(new
+            {
+                numLot = lot.NumLot,
+                dateProd = lot.LotDateProd.ToString("yyyy-MM-dd"),
+                numEntree = lot.LotNumEntree,
+                client = lot.LotClient,
+                fournisseur = lot.LotFournisseur,
+                operateur = lot.LotOperateurEnr
+            });
+        }
+
+        [HttpPost]
+        [Route("Lots/Edit")]
+        public IActionResult Edit([FromBody] Lot updatedLot)
+        {
+            if (updatedLot == null || string.IsNullOrEmpty(updatedLot.NumLot))
+            {
+                return BadRequest(new { success = false, message = "Données invalides." });
+            }
+
+            var lot = _context.Lots.FirstOrDefault(l => l.NumLot == updatedLot.NumLot);
+            if (lot == null)
+            {
+                return NotFound(new { success = false, message = "Lot non trouvé." });
+            }
+
+            // Mise à jour des champs
+            lot.LotDateProd = updatedLot.LotDateProd;
+            lot.LotNumEntree = updatedLot.LotNumEntree;
+            lot.LotClient = updatedLot.LotClient;
+            lot.LotFournisseur = updatedLot.LotFournisseur;
+            lot.LotOperateurEnr = updatedLot.LotOperateurEnr;
+
+            _context.SaveChanges();
+
+            return Ok(new { success = true, message = "Lot modifié avec succès." });
+        }
     }
 }

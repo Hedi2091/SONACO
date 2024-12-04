@@ -83,5 +83,79 @@ namespace MonApplicationMVC.Controllers
             var entrees = _context.Entree.ToList();
             return View("Index", entrees);
         }
+
+        [HttpDelete]
+        public IActionResult Delete(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                return BadRequest(new { success = false, message = "Identifiant non spécifié." });
+            }
+
+            var entree = _context.Entree.FirstOrDefault(e => e.NumEntree == id);
+            if (entree == null)
+            {
+                return NotFound(new { success = false, message = "Entrée non trouvée." });
+            }
+
+            _context.Entree.Remove(entree);
+            _context.SaveChanges();
+
+            return Ok(new { success = true, message = "Entrée supprimée avec succès." });
+        }
+
+        [HttpGet]
+        public IActionResult Edit(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                return BadRequest(new { success = false, message = "Identifiant non spécifié." });
+            }
+
+            var entree = _context.Entree.FirstOrDefault(e => e.NumEntree == id);
+            if (entree == null)
+            {
+                return NotFound(new { success = false, message = "Entrée non trouvée." });
+            }
+
+            return Json(new
+            {
+                numEntree = entree.NumEntree,
+                dateArr = entree.DateArr.ToString("yyyy-MM-dd"),
+                codeFour = entree.CodeFour,
+                codeClient = entree.CodeClient,
+                nbRouleau = entree.NbRouleau,
+                largeur = entree.Largeur
+            });
+        }
+
+        [HttpPost]
+        public IActionResult Edit([FromBody] Entree updatedEntree)
+        {
+            if (updatedEntree == null || string.IsNullOrEmpty(updatedEntree.NumEntree))
+            {
+                return BadRequest(new { success = false, message = "Données invalides." });
+            }
+
+            var entree = _context.Entree.FirstOrDefault(e => e.NumEntree == updatedEntree.NumEntree);
+            if (entree == null)
+            {
+                return NotFound(new { success = false, message = "Entrée non trouvée." });
+            }
+
+            // Mettre à jour les champs
+            entree.DateArr = updatedEntree.DateArr;
+            entree.CodeFour = updatedEntree.CodeFour;
+            entree.CodeClient = updatedEntree.CodeClient;
+            entree.NbRouleau = updatedEntree.NbRouleau;
+            entree.Largeur = updatedEntree.Largeur;
+
+            _context.SaveChanges();
+
+            return Ok(new { success = true, message = "Entrée modifiée avec succès." });
+        }
+
+
+
     }
 }

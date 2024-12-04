@@ -78,6 +78,7 @@
                 <th>Code Client</th>
                 <th>Nombre de Rouleaux</th>
                 <th>Largeur</th>
+                <th>Action</th>
             </tr>
         </thead>
         <tbody id="entreeTableBody">
@@ -90,12 +91,66 @@
                     <td>@entree.CodeClient</td>
                     <td>@entree.NbRouleau</td>
                     <td>@entree.Largeur</td>
+                    <td>
+                        <!-- Bouton Modifier -->
+                        <button class="btn btn-primary btn-sm btn-edit" data-id="@entree.NumEntree">Modifier</button>
+
+                        <!-- Bouton Supprimer -->
+                        <button class="btn btn-danger btn-sm btn-delete" data-id="@entree.NumEntree">Supprimer</button>
+                    </td>
                 </tr>
             }
         </tbody>
     </table>
 </div>
 
+
+<!-- Modal Modifier une Entrée -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editModalLabel">Modifier une Entrée</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <div class="form-group">
+                        <label for="editNumEntree">Numéro d'Entrée</label>
+                        <input type="text" class="form-control" id="editNumEntree" name="NumEntree" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="editDateArr">Date d'Arrivée</label>
+                        <input type="date" class="form-control" id="editDateArr" name="DateArr" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="editCodeFour">Code Fournisseur</label>
+                        <input type="text" class="form-control" id="editCodeFour" name="CodeFour" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="editCodeClient">Code Client</label>
+                        <input type="text" class="form-control" id="editCodeClient" name="CodeClient" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="editNbRouleau">Nombre de Rouleaux</label>
+                        <input type="number" class="form-control" id="editNbRouleau" name="NbRouleau" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="editLargeur">Largeur</label>
+                        <input type="number" class="form-control" id="editLargeur" name="Largeur" required />
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" id="saveChangesBtn">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     // Ouverture et fermeture de la popup d'ajout
     const addPopup = document.getElementById("addPopup");
@@ -127,6 +182,10 @@
                                 <td>${entree.codeClient}</td>
                                 <td>${entree.nbRouleau}</td>
                                 <td>${entree.largeur}</td>
+                                <td>
+                                <button class="btn btn-primary btn-sm btn-edit" data-id="${entree.numEntree}">Modifier</button>
+                                <button class="btn btn-danger btn-sm btn-delete" data-id="${entree.numEntree}">Supprimer</button>
+                            </td>
                             </tr>`;
                         tableBody.innerHTML += row;
                     });
@@ -139,6 +198,90 @@
             })
             .catch(error => console.error("Erreur lors de la recherche :", error));
     }
+
+        // Gestion du clic sur le bouton "Modifier"
+    $(document).on('click', '.btn-edit', function () {
+        const numEntree = $(this).data('id'); // Récupère l'identifiant de l'entrée
+
+        // Requête AJAX pour récupérer les détails de l'entrée
+        $.get(`/Entree/Edit?id=${numEntree}`, function (data) {
+            // Pré-remplir les champs du modal avec les données reçues
+            $('#editNumEntree').val(data.numEntree);
+            $('#editDateArr').val(data.dateArr);
+            $('#editCodeFour').val(data.codeFour);
+            $('#editCodeClient').val(data.codeClient);
+            $('#editNbRouleau').val(data.nbRouleau);
+            $('#editLargeur').val(data.largeur);
+
+            // Afficher le modal
+            $('#editModal').modal('show');
+        }).fail(function () {
+            alert("Erreur lors du chargement des données.");
+        });
+    });
+
+    // Gestion du clic sur le bouton "Supprimer"
+    $(document).on('click', '.btn-delete', function () {
+        const numEntree = $(this).data('id'); // Récupère l'identifiant de l'entrée
+        if (!numEntree) {
+            alert("Identifiant de l'entrée introuvable.");
+            return;
+        }
+
+        if (!confirm("Êtes-vous sûr de vouloir supprimer cette entrée ?")) {
+            return; // Annuler si l'utilisateur refuse
+        }
+
+        // Requête AJAX pour supprimer l'entrée
+        $.ajax({
+            url: `/Entree/Delete?id=${encodeURIComponent(numEntree)}`, // Appelle le contrôleur
+            type: 'DELETE',
+            success: function (response) {
+                if (response.success) {
+                    alert(response.message || "Entrée supprimée avec succès !");
+                    location.reload(); // Recharger la page pour mettre à jour les données
+                } else {
+                    alert(response.message || "Une erreur s'est produite.");
+                }
+            },
+            error: function () {
+                alert("Erreur lors de la suppression de l'entrée.");
+            }
+        });
+    });
+
+    // Gestion du clic sur le bouton "Enregistrer" dans le modal
+    $('#saveChangesBtn').click(function () {
+        // Récupérer les données du formulaire
+        const formData = {
+            NumEntree: $('#editNumEntree').val(),
+            DateArr: $('#editDateArr').val(),
+            CodeFour: $('#editCodeFour').val(),
+            CodeClient: $('#editCodeClient').val(),
+            NbRouleau: $('#editNbRouleau').val(),
+            Largeur: $('#editLargeur').val(),
+        };
+
+        // Requête AJAX pour enregistrer les modifications
+        $.ajax({
+            url: '/Entree/Edit',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function (response) {
+                if (response.success) {
+                    alert(response.message || "Modifications enregistrées avec succès !");
+                    location.reload(); // Recharger la page pour mettre à jour les données
+                } else {
+                    alert(response.message || "Une erreur s'est produite.");
+                }
+            },
+            error: function () {
+                alert("Erreur lors de l'enregistrement des modifications.");
+            }
+        });
+    });
+
 </script>
 
 <style>

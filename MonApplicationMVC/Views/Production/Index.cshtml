@@ -1,208 +1,459 @@
-﻿@model IEnumerable<MonApplicationMVC.Models.ProdEnroul_Enete>
+﻿@model IEnumerable<MonApplicationMVC.Models.Lot>
 
-<h2>Productions Enroulées</h2>
+@{
+    ViewData["Title"] = "Productions Enroulage";
+}
 
-<!-- Bouton pour afficher la popup d'ajout -->
-<button type="button" id="showAddPopup" class="btn btn-primary">Ajouter une Production</button>
+<div class="container mt-4">
+    <h2>Productions Enroulées</h2>
 
-<hr />
+    <!-- Recherche -->
+    <div class="form-inline mb-4">
+        <input id="lotSearch" class="form-control mr-2" type="text" placeholder="Rechercher par Numéro de Lot" />
+    </div>
 
-<!-- Formulaire de recherche (toujours visible) -->
-<div id="searchForm">
-    <h3>Rechercher des Productions</h3>
-    <form id="dynamicSearchForm">
-        <div class="form-group">
-            <label for="searchNumLot">Numéro du Lot</label>
-            <input type="text" class="form-control" id="searchNumLot" name="searchNumLot" />
-        </div>
 
-        <div class="form-group">
-            <label for="searchDateDebut">Date de Début</label>
-            <input type="date" class="form-control" id="searchDateDebut" name="searchDateDebut" />
-        </div>
-    </form>
-</div>
-
-<hr />
-
-<!-- Popup pour le formulaire d'ajout -->
-<dialog id="addPopup" class="popup">
-    <h3>Formulaire d'ajout</h3>
-    <form asp-action="Create" method="post">
-        <fieldset>
-            <legend>En-tête de Production</legend>
-            <div class="form-group">
-                <label for="NumLot">Numéro du Lot</label>
-                <input type="text" class="form-control" id="NumLot" name="NumLot" required />
-            </div>
-
-            <div class="form-group">
-                <label for="DateDebut">Date de Début</label>
-                <input type="date" class="form-control" id="DateDebut" name="DateDebut" required />
-            </div>
-
-            <div class="form-group">
-                <label for="HeureDebut">Heure de Début</label>
-                <input type="time" class="form-control" id="HeureDeb" name="HeureDebut" required />
-            </div>
-
-            <div class="form-group">
-                <label for="LongueurTotale">Longueur Totale</label>
-                <input type="number" class="form-control" id="LongeurTotale" name="LongueurTotale" required />
-            </div>
-
-            <div class="form-group">
-                <label for="Operateur">Opérateur</label>
-                <input type="text" class="form-control" id="Operateur" name="Operateur" required />
-            </div>
-        </fieldset>
-
-        <fieldset>
-            <legend>Détails des Rouleaux</legend>
-            <div id="rouleauxContainer">
-                <div class="rouleau-entry">
-                    <div class="form-group">
-                        <label for="NumEnsouple">Numéro d'Ensouple</label>
-                        <input type="number" class="form-control" id="NumEnsouple" name="Rouleaux[0].NumEnsouple" required />
-                    </div>
-
-                    <div class="form-group">
-                        <label for="NumRouleau">Numéro du Rouleau</label>
-                        <input type="number" class="form-control" id="NumRouleau" name="Rouleaux[0].NumRouleau" required />
-                    </div>
-
-                    <div class="form-group">
-                        <label for="Poids">Poids</label>
-                        <input type="number" step="0.01" class="form-control" id="Poids" name="Rouleaux[0].Poids" required />
-                    </div>
-
-                    <div class="form-group">
-                        <label for="Metrage">Métrage</label>
-                        <input type="number" class="form-control" id="Metrage" name="Rouleaux[0].Metrage" required />
-                    </div>
-                </div>
-            </div>
-            <button type="button" id="addRouleau" class="btn btn-secondary">Ajouter un Rouleau</button>
-        </fieldset>
-
-        <div class="form-group">
-            <button type="submit" class="btn btn-primary btn-block">Soumettre</button>
-            <button type="button" class="btn btn-secondary btn-block" id="closeAddPopup">Fermer</button>
-        </div>
-    </form>
-</dialog>
-
-<!-- Liste des productions -->
-<h3>Liste des Productions</h3>
-<div id="productionList">
-    <table class="table">
+    <!-- Tableau des lots -->
+    <table class="table table-bordered">
         <thead>
             <tr>
                 <th>Numéro du Lot</th>
-                <th>Date de Début</th>
-                <th>Heure de Début</th>
-                <th>Longueur Totale</th>
-                <th>Opérateur</th>
+                <th>Action</th>
             </tr>
         </thead>
-        <tbody id="productionTableBody">
-            @foreach (var production in Model)
-            {
-                <tr>
-                    <td>@production.NumLot</td>
-                    <td>@production.DateDebut.ToString("dd/MM/yyyy")</td>
-                    <td>@production.HeureDeb</td>
-                    <td>@production.LongeurTotale</td>
-                    <td>@production.Operateur</td>
-                </tr>
-            }
+        <tbody id="lotsTable">
+            <!-- Contenu dynamique via JavaScript -->
         </tbody>
     </table>
 </div>
 
+<!-- Script -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-    // Ajout dynamique des rouleaux
-    document.getElementById("addRouleau").addEventListener("click", () => {
-        const container = document.getElementById("rouleauxContainer");
-        const index = container.children.length;
 
-        const rouleauHTML = `
-                <div class="rouleau-entry">
-                    <div class="form-group">
-                        <label for="NumEnsouple">Numéro d'Ensouple</label>
-                        <input type="number" class="form-control" id="NumEnsouple" name="Rouleaux[${index}].NumEnsouple" required />
-                    </div>
+        function updateRowColors() {
+        $.getJSON('/Production/GetCloture', function (data) {
+            // Parcourir chaque ligne du tableau
+            $('#lotsTable tr').each(function () {
+                const numLot = $(this).find('td:first').text().trim(); // Récupère le numéro de lot de la première cellule
+                const lot = data.find(l => l.numLot === numLot); // Trouve le lot correspondant dans les données reçues
 
-                    <div class="form-group">
-                        <label for="NumRouleau">Numéro du Rouleau</label>
-                        <input type="number" class="form-control" id="NumRouleau" name="Rouleaux[${index}].NumRouleau" required />
-                    </div>
+                if (lot) {
+                    // Si Cloture est 1, ajoute la classe bg-success (vert), sinon reste bg-danger (rouge par défaut)
+                    if (lot.cloture === 1) {
+                        $(this).removeClass('bg-danger').addClass('bg-success');
+                    }
+                    if (lot.cloture === 0) {
+                        $(this).removeClass('bg-success').addClass('bg-danger');
+                    }
+                }
+            });
+        });
+    }
+    updateRowColors();
+    $(document).ready(function () {
+            updateRowColors();
+        $('#lotSearch').on('input', function () {
+    const query = $(this).val().trim();
 
-                    <div class="form-group">
-                        <label for="Poids">Poids</label>
-                        <input type="number" step="0.01" class="form-control" id="Poids" name="Rouleaux[${index}].Poids" required />
-                    </div>
+    if (query === '') {
+        // Si le champ est vide, recharger tous les lots
+        loadLots(); // Appeler la fonction pour afficher tous les lots
+        updateRowColors();
+        return;
+    }
 
-                    <div class="form-group">
-                        <label for="Metrage">Métrage</label>
-                        <input type="number" class="form-control" id="Metrage" name="Rouleaux[${index}].Metrage" required />
-                    </div>
-                </div>
-            `;
+    $.getJSON('/Production/SearchByLot', { lotNumber: query }, function (response) {
+        const tableBody = $('#lotsTable');
+        tableBody.empty();
 
-        container.insertAdjacentHTML("beforeend", rouleauHTML);
+        if (!response.success || response.data.length === 0) {
+            tableBody.append('<tr><td colspan="2" class="text-center">Aucun lot correspondant</td></tr>');
+            return;
+        }
+
+        response.data.forEach(lot => {
+               // const rowClass = lot.cloture === 1 ? 'bg-success text-white' : '';
+            tableBody.append(`
+                <tr>
+                    <td>${lot.numLot}</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm btnProduction" data-lot="${lot.numLot}">Production</button>
+                        <button class="btn btn-primary btn-sm btn-consulter" data-lot="${lot.numLot}">Consulter</button>
+                    </td>
+                </tr>
+            `);
+        });
+
+            updateRowColors();
+
+        // Réattacher les événements aux boutons
+        $('.btnProduction').click(function () {
+            const numLot = $(this).data('lot');
+            openProductionModal(numLot);
+        });
+
+        $('.btn-consulter').click(function () {
+            const numLot = $(this).data('lot');
+            openConsultationModal(numLot);
+        });
+    });
+});
+
+        // Charger les lots au démarrage
+                    updateRowColors();
+
+        loadLots();
+        updateRowColors();
+        // Fonction pour charger les lots
+        function loadLots() {
+            $.getJSON('/Production/GetLotNumbers', function (data) {
+                     $.getJSON('/Production/GetCloture', function (clotureData) {
+                const tableBody = $('#lotsTable');
+                tableBody.empty();
+
+                if (data.length === 0) {
+                    tableBody.append('<tr><td colspan="2" class="text-center">Aucun lot disponible</td></tr>');
+                    return;
+                }
+
+                data.forEach(lot => {
+                    const cloture = clotureData.find(c => c.numLot === lot.numLot)?.cloture;
+                    const rowClass = cloture === 1 ? 'bg-success' : 'bg-danger';
+                    tableBody.append(`
+                        <tr class="${rowClass}">
+                            <td>${lot.numLot}</td>
+                            <td>
+                                <button class="btn btn-primary btn-sm btnProduction" data-lot="${lot.numLot}">Production</button>
+                                <button class="btn btn-primary btn-sm btn-consulter" data-lot="${lot.numLot}">Consulter</button>
+                            </td>
+                        </tr>
+                    `);
+                });
+
+                // Ajouter un événement pour les boutons "Production"
+                $('.btnProduction').click(function () {
+                    const numLot = $(this).data('lot');
+                    openProductionModal(numLot);
+                });
+            });
+            });
+        }
+           function openProductionModal(numLot) {
+        if (!numLot) {
+            alert("Erreur : Numéro de lot introuvable !");
+            return;
+        }
+
+        const now = new Date();
+        const currentDate = now.toISOString().slice(0, 10); // Format YYYY-MM-DD
+        const currentTime = now.toTimeString().slice(0, 5); // Format HH:MM
+
+        $.ajax({
+            url: `/Production/GetProductionDetails?numLot=${numLot}`,
+            method: 'GET',
+            success: function (data) {
+                // Remplir les champs du formulaire
+                $('input[name="NumLot"]').val(data.numLot);
+                $('input[name="DateDebut"]').val(data.dateDebut || currentDate); // Si vide, utiliser la date actuelle
+                $('input[name="HeureDeb"]').val(data.heureDeb || currentTime);  // Si vide, utiliser l'heure actuelle
+                $('input[name="LongeurTotale"]').val(data.longeurTotale);
+                $('input[name="Operateur"]').val(data.operateur);
+
+                // Ajouter les rouleaux existants
+                const table = $('#rouleauxTable');
+                table.empty(); // Nettoyer les lignes précédentes
+                data.rouleaux.forEach(r => {
+                    table.append(`
+                        <tr>
+                            <td><input type="text" class="form-control" name="NumEnsouple[]" value="${r.numEnsouple}" required /></td>
+                            <td><input type="text" class="form-control" name="NumRouleau[]" value="${r.numRouleau}" required /></td>
+                            <td><input type="number" class="form-control" name="Poid[]" value="${r.poid}" required /></td>
+                            <td><input type="number" class="form-control" name="Metrage[]" value="${r.metrage}" required /></td>
+                            <td><button type="button" class="btn btn-danger btn-sm btnRemoveRouleau">Supprimer</button></td>
+                        </tr>
+                    `);
+                });
+
+                // Gestion de suppression des rouleaux
+                $('.btnRemoveRouleau').off('click').on('click', function () {
+                    $(this).closest('tr').remove();
+                });
+
+                // Afficher le modal
+                $('#productionModal').modal('show');
+            },
+            error: function (error) {
+                alert(error.responseJSON?.message || 'Une erreur est survenue lors de la récupération des détails.');
+            }
+        });
+    }
+        
+        // Empêcher la soumission globale du formulaire
+        $('#productionForm').submit(function (e) {
+            e.preventDefault(); // Empêche la soumission globale du formulaire
+        });
+
+           // Gestion de l'ajout des rouleaux
+    $('#addRouleauBtn').click(function (e) {
+        e.preventDefault(); // Empêche tout comportement par défaut
+        e.stopPropagation(); // Empêche la propagation de l'événement
+
+        const table = $('#rouleauxTable'); // Table cible pour ajouter les rouleaux
+
+        // Limite à 24 rouleaux
+        if (table.children('tr').length >= 24) {
+            alert('Vous ne pouvez pas ajouter plus de 24 rouleaux.');
+            return;
+        }
+
+        // Ajouter une ligne pour un nouveau rouleau
+        table.append(`
+            <tr>
+                <td><input type="text" class="form-control" name="NumEnsouple[]" placeholder="Numéro d'Ensouple" required /></td>
+                <td><input type="text" class="form-control" name="NumRouleau[]" placeholder="Numéro de Rouleau" required /></td>
+                <td><input type="number" class="form-control" name="Poid[]" placeholder="Poids" required /></td>
+                <td><input type="number" class="form-control" name="Metrage[]" placeholder="Métrage" required /></td>
+                <td><button type="button" class="btn btn-danger btn-sm btnRemoveRouleau">Supprimer</button></td>
+            </tr>
+        `);
+
+        // Gestion de la suppression des rouleaux
+        table.find('.btnRemoveRouleau').off('click').on('click', function () {
+            $(this).closest('tr').remove();
+        });
     });
 
-    // Gestion de la popup
-    const addPopup = document.getElementById("addPopup");
-    document.getElementById("showAddPopup").onclick = () => addPopup.showModal();
-    document.getElementById("closeAddPopup").onclick = () => addPopup.close();
 
-    // Recherche dynamique
-    document.getElementById("searchNumLot").addEventListener("input", performSearch);
-    document.getElementById("searchDateDebut").addEventListener("input", performSearch);
+        // Forcer la fermeture du modal pour le bouton "Annuler"
+        $('#productionModal').on('click', '.btn-secondary', function () {
+            $('#productionModal').modal('hide');
+        });
 
-    function performSearch() {
-        const searchNumLot = document.getElementById("searchNumLot").value;
-        const searchDateDebut = document.getElementById("searchDateDebut").value;
+        // Réinitialiser le formulaire après fermeture du modal
+        $('#productionModal').on('hidden.bs.modal', function () {
+            $('#productionForm')[0].reset();
+            $('#rouleauxTable').empty();
+        });
 
-        fetch(`/Production/Search?searchNumLot=${searchNumLot}&searchDateDebut=${searchDateDebut}`)
-            .then(response => response.json())
-            .then(data => {
-                const tableBody = document.getElementById("productionTableBody");
-                tableBody.innerHTML = ""; // Efface les anciennes lignes
+        // Enregistrer la production
+        $('#saveProductionBtn').click(function (e) {
+            e.preventDefault();
 
-                if (data.length > 0) {
-                    data.forEach(production => {
-                        const row = `
-                            <tr>
-                                <td>${production.NumLot}</td>
-                                <td>${production.DateDebut}</td>
-                                <td>${production.HeureDebut}</td>
-                                <td>${production.LongueurTotale}</td>
-                                <td>${production.Operateur}</td>
-                            </tr>`;
-                        tableBody.innerHTML += row;
+            const numLot = $('input[name="NumLot"]').val();
+            const dateDebut = $('input[name="DateDebut"]').val();
+            const heureDeb = $('input[name="HeureDeb"]').val();
+            const heureDebFormatted = heureDeb + ":00";
+            const longeurTotale = $('input[name="LongeurTotale"]').val();
+            const operateur = $('input[name="Operateur"]').val();
+
+            const rouleaux = [];
+            $('#rouleauxTable tr').each(function () {
+                const numEnsouple = $(this).find('input[name="NumEnsouple[]"]').val();
+                const numRouleau = $(this).find('input[name="NumRouleau[]"]').val();
+                const poid = $(this).find('input[name="Poid[]"]').val();
+                const metrage = $(this).find('input[name="Metrage[]"]').val();
+
+                if (numEnsouple && numRouleau && poid && metrage) {
+                    rouleaux.push({
+                        NumEnsouple: parseInt(numEnsouple),
+                        NumRouleau: parseInt(numRouleau),
+                        Poid: parseFloat(poid),
+                        Metrage: parseInt(metrage)
                     });
-                } else {
-                    tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="5" class="text-center">Aucun résultat trouvé</td>
-                        </tr>`;
                 }
-            })
-            .catch(error => console.error("Erreur lors de la recherche :", error));
-    }
+            });
+
+            if (!numLot || !dateDebut || !heureDeb || !longeurTotale || !operateur || rouleaux.length === 0) {
+                alert('Veuillez remplir toutes les informations nécessaires.');
+                return;
+            }
+
+                    $.ajax({
+        url: '/Production/SaveProduction',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            NumLot: numLot, // Correspond exactement à la propriété dans le modèle
+            DateDebut: dateDebut, // Correspond à DateDebut du modèle
+            HeureDeb: heureDebFormatted, // Correspond à HeureDeb
+            LongeurTotale: parseInt(longeurTotale), // Correspond à LongeurTotale
+            Operateur: operateur, // Correspond à Operateur
+            Rouleaux: rouleaux.map(r => ({
+                NumLot: numLot, // Obligatoire car il est une clé dans ProdEnroul_Rouleau
+                NumEnsouple: r.NumEnsouple,
+                NumRouleau: r.NumRouleau,
+                Poid: parseFloat(r.Poid), // Correspond à Poid
+                Metrage: parseInt(r.Metrage) // Correspond à Metrage
+            }))
+        }),
+        success: function (response) {
+            alert(response.message);
+            location.reload();
+        },
+        error: function (error) {
+            alert(error.responseJSON?.message || 'Une erreur est survenue.');
+        }
+            });
+        });
+        $(document).on('click', '.btn-consulter', function () {
+        const numLot = $(this).data('lot');
+
+        if (!numLot) {
+            alert("Numéro de lot introuvable !");
+            return;
+        }
+
+
+
+        // Effectuer une requête pour obtenir les détails de la production
+        $.ajax({
+            url: `/Production/ViewProduction?numLot=${numLot}`,
+            type: 'GET',
+            success: function (data) {
+                // Remplir les détails dans le modal
+                $('#detailNumLot').text(data.numLot);
+                $('#detailDateDebut').text(data.dateDebut);
+                $('#detailHeureDeb').text(data.heureDeb);
+                $('#detailLongeurTotale').text(data.longeurTotale);
+                $('#detailOperateur').text(data.operateur);
+
+                // Remplir la table des rouleaux
+                const rouleauxTable = $('#detailRouleauxTable');
+                rouleauxTable.empty();
+
+                data.rouleaux.forEach(function (rouleau) {
+                    rouleauxTable.append(`
+                        <tr>
+                            <td>${rouleau.numEnsouple}</td>
+                            <td>${rouleau.numRouleau}</td>
+                            <td>${rouleau.poid}</td>
+                            <td>${rouleau.metrage}</td>
+                        </tr>
+                    `);
+                });
+
+                // Afficher le modal
+                $('#viewProductionModal').modal('show');
+            },
+            error: function (error) {
+                alert(error.responseJSON?.message || "Une erreur s'est produite.");
+            }
+        });
+    });
+        $(document).on('click', '.btn-cloturer', function () {
+        const numLot = $('input[name="NumLot"]').val(); // Récupère le NumLot du formulaire
+
+        if (!numLot) {
+            alert("Numéro de lot introuvable !");
+            return;
+        }
+
+        // Effectuer une requête POST pour mettre à jour Cloture
+        $.ajax({
+            url: `/Production/CloturerProduction?numLot=${encodeURIComponent(numLot)}`,
+            type: 'POST',
+            success: function (response) {
+                alert(response.message || "Lot clôturé avec succès !");
+                location.reload(); // Recharge la page pour mettre à jour
+            },
+            error: function (error) {
+                alert(error.responseJSON?.message || "Erreur lors de la clôture.");
+            }
+        });
+    });
+
+    });
 </script>
 
-<style>
-    dialog.popup {
-        width: 50%;
-        border: none;
-        border-radius: 8px;
-        padding: 20px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
+<!-- Pop-up pour modifier la production -->
+<div id="productionModal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modifier la Production</h5>
+            </div>
+            <div class="modal-body">
+                <form id="productionForm">
+                    <div class="form-group">
+                        <label>Numéro du Lot</label>
+                        <input type="text" name="NumLot" class="form-control" readonly />
+                    </div>
+                    <div class="form-group">
+                        <label>Date de Début</label>
+                        <input type="date" name="DateDebut" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Heure de Début</label>
+                        <input type="time" name="HeureDeb" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Longueur Totale</label>
+                        <input type="number" name="LongeurTotale" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Opérateur</label>
+                        <input type="text" name="Operateur" class="form-control" />
+                    </div>
+                    <h5>Rouleaux</h5>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Numéro d'Ensouple</th>
+                                <th>Numéro de Rouleau</th>
+                                <th>Poids</th>
+                                <th>Métrage</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rouleauxTable"></tbody>
+                    </table>
+                    <button id="addRouleauBtn" type="button" class="btn btn-secondary">Ajouter Rouleau</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="saveProductionBtn">Enregistrer</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
+                <button class="btn btn-danger btn-sm btn-cloturer" data-lot="${lot.numLot}">Clôturer</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-    dialog::backdrop {
-        background: rgba(0, 0, 0, 0.
+<!-- Modal pour les détails de production -->
+<div id="viewProductionModal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Détails de la Production</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="detailsContent">
+                    <p><strong>Numéro de Lot :</strong> <span id="detailNumLot"></span></p>
+                    <p><strong>Date de Début :</strong> <span id="detailDateDebut"></span></p>
+                    <p><strong>Heure de Début :</strong> <span id="detailHeureDeb"></span></p>
+                    <p><strong>Longueur Totale :</strong> <span id="detailLongeurTotale"></span></p>
+                    <p><strong>Opérateur :</strong> <span id="detailOperateur"></span></p>
+
+                    <h5>Rouleaux</h5>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Numéro d'Ensouple</th>
+                                <th>Numéro de Rouleau</th>
+                                <th>Poids</th>
+                                <th>Métrage</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailRouleauxTable"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+

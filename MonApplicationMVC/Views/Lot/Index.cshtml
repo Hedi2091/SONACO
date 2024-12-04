@@ -66,6 +66,51 @@
     </form>
 </dialog>
 
+
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editModalLabel">Modifier un Lot</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <div class="form-group">
+                        <label for="editNumLot">Numéro du Lot</label>
+                        <input type="text" class="form-control" id="editNumLot" name="NumLot" readonly />
+                    </div>
+                    <div class="form-group">
+                        <label for="editDateProd">Date de Production</label>
+                        <input type="date" class="form-control" id="editDateProd" name="DateProd" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="editNumEntree">Numéro d'Entrée</label>
+                        <input type="text" class="form-control" id="editNumEntree" name="NumEntree" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="editClient">Client</label>
+                        <input type="text" class="form-control" id="editClient" name="Client" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="editFournisseur">Fournisseur</label>
+                        <input type="text" class="form-control" id="editFournisseur" name="Fournisseur" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="editOperateur">Opérateur</label>
+                        <input type="text" class="form-control" id="editOperateur" name="Operateur" required />
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" id="saveChangesBtn">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <!-- Liste des lots -->
 <h3>Liste des Lots</h3>
 <div id="lotList">
@@ -78,6 +123,7 @@
                 <th>Client</th>
                 <th>Fournisseur</th>
                 <th>Opérateur</th>
+                <th>Action</th>
             </tr>
         </thead>
         <tbody id="lotTableBody">
@@ -90,12 +136,61 @@
                     <td>@lot.LotClient</td>
                     <td>@lot.LotFournisseur</td>
                     <td>@lot.LotOperateurEnr</td>
+                    <td>
+                        <button class="btn btn-primary btn-edit" data-id="@lot.NumLot">Modifier</button>
+                        <button class="btn btn-danger btn-sm btn-delete" data-id="@lot.NumLot">Supprimer</button>
+                    </td>
                 </tr>
             }
         </tbody>
     </table>
 </div>
 
+
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editModalLabel">Modifier un Lot</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <div class="form-group">
+                        <label for="editNumLot">Numéro du Lot</label>
+                        <input type="text" class="form-control" id="editNumLot" name="NumLot" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="editDateProd">Date de Production</label>
+                        <input type="date" class="form-control" id="editDateProd" name="DateProd" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="editNumEntree">Numéro d'Entrée</label>
+                        <input type="text" class="form-control" id="editNumEntree" name="NumEntree" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="editClient">Client</label>
+                        <input type="text" class="form-control" id="editClient" name="Client" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="editFournisseur">Fournisseur</label>
+                        <input type="text" class="form-control" id="editFournisseur" name="Fournisseur" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="editOperateur">Opérateur</label>
+                        <input type="text" class="form-control" id="editOperateur" name="Operateur" required />
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" id="saveChangesBtn">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
     // Ouverture et fermeture de la popup d'ajout
     const addPopup = document.getElementById("addPopup");
@@ -139,6 +234,92 @@
             })
             .catch(error => console.error("Erreur lors de la recherche :", error));
     }
+
+     $(document).on('click', '.btn-delete', function () {
+        const numLot = $(this).data('id');
+        if (!confirm("Êtes-vous sûr de vouloir supprimer ce lot ?")) {
+            return;
+        }
+
+        $.ajax({
+            url: `/Lots/Delete?NumLot=${encodeURIComponent(numLot)}`,
+            type: 'DELETE',
+            success: function (response) {
+                if (response.success) {
+                    alert(response.message || "Lot supprimé avec succès !");
+                    location.reload();
+                } else {
+                    alert(response.message || "Une erreur s'est produite.");
+                }
+            },
+            error: function (xhr) {
+                alert("Erreur lors de la suppression du lot.");
+                console.error(xhr.responseText);
+            }
+        });
+    });
+
+        // Gestion du clic sur le bouton "Modifier"
+        // Gestion du clic sur le bouton "Modifier"
+    $(document).on('click', '.btn-edit', function () {
+        const numLot = $(this).data('id'); // Récupère l'attribut data-id
+        console.log("NumLot récupéré : ", numLot);
+        if (!numLot) {
+            alert("Numéro de lot introuvable.");
+            return;
+        }
+
+        // Requête AJAX pour récupérer les détails
+        $.get(`/Lots/Edit?NumLot=${encodeURIComponent(numLot)}`, function (data) {
+            // Pré-remplir les champs du modal
+            $('#editNumLot').val(data.numLot);
+            $('#editDateProd').val(data.dateProd);
+            $('#editNumEntree').val(data.numEntree);
+            $('#editClient').val(data.client);
+            $('#editFournisseur').val(data.fournisseur);
+            $('#editOperateur').val(data.operateur);
+
+            // Afficher le modal
+            $('#editModal').modal('show');
+        }).fail(function () {
+            alert("Erreur lors du chargement des données.");
+        });
+    });
+
+
+    // Gestion du clic sur le bouton "Enregistrer"
+    $('#saveChangesBtn').click(function () {
+        // Récupérer les données du formulaire
+        const formData = {
+            NumLot: $('#editNumLot').val(),
+            LotDateProd: $('#editDateProd').val(),
+            LotNumEntree: $('#editNumEntree').val(),
+            LotClient: $('#editClient').val(),
+            LotFournisseur: $('#editFournisseur').val(),
+            LotOperateurEnr: $('#editOperateur').val()
+        };
+
+        // Requête AJAX pour enregistrer les modifications
+        $.ajax({
+            url: '/Lots/Edit',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function (response) {
+                if (response.success) {
+                    alert(response.message || "Lot modifié avec succès !");
+                    location.reload(); // Recharger la page pour mettre à jour
+                } else {
+                    alert(response.message || "Erreur lors de l'enregistrement.");
+                }
+            },
+            error: function () {
+                alert("Erreur lors de l'enregistrement des modifications.");
+            }
+        });
+    });
+
+
 </script>
 
 <style>
